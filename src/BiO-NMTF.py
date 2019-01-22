@@ -22,7 +22,7 @@ def dump_log(configStr, err_history):
     with open(filename, 'w') as fp:
         writer = csv.writer(fp, delimiter=' ')
         for i, h in enumerate(err_history):
-            writer.writerow(i, h)
+            writer.writerow([i, h])
 
 
 
@@ -54,7 +54,7 @@ def multiplicative_update(X, F, S, G, min_iter= 100, max_iter= 1000, epsilon= -6
 
         # compute loss
         tr2= np.trace(np.dot(FtXG.T, S))
-        tr3= np.trace(reduce(np.dot, FtF, S, GtG, S.T))
+        tr3= np.trace(reduce(np.dot, [FtF, S, GtG, S.T]))
         loss= trXX - 2*tr2 + tr3
         err_history.append(loss)
 
@@ -74,9 +74,9 @@ def validate_factors(factors):
 
 
 
-def tri_factorization(X, F, S, G, min_iter= 5, max_iter= 1000, verbose= True):
+def tri_factorization(X, F, S, G, min_iter= 5, max_iter= 1000, epsilon= -6, tolerance= 5, verbose= True):
     t0= time.time()
-    factors, losses= multiplicative_update(X, F, S, G, min_iter, max_iter, verbose)
+    factors, losses= multiplicative_update(X, F, S, G, min_iter, max_iter, epsilon, tolerance, verbose)
     validate_factors(factors)
     t1= time.time()
     duration= t1 - t0
@@ -90,14 +90,16 @@ def load_data():
     pass
 
 def load_test():
-    return 100 * np.random.rand(5000, 10000)
+    return 100 * np.random.rand(500, 1000)
 
 def main():
     parser= argparse.ArgumentParser(description= 'non-negative matrix tri-factorization')
-    parser.add_argument('row', 'rank_row', type= int, help= "factorization rank(row dimension)")
-    parser.add_argument('col', 'rank_column', type= int, help= "factorization rank(column dimension)")
+    parser.add_argument('-row', '--rank_row', type= int, default= 3,
+                        help= "factorization rank(row dimension)")
+    parser.add_argument('-col', '--rank_column', type= int, default= 3,
+                        help= "factorization rank(column dimension)")
     parser.add_argument('-i', '--max_iter', type=int, default=20, help="Maximum number of iterations.")
-    parser.add_argument('-m', '--min-iter', type=int, default=1, help="Specify minimum number of iterations.")
+    parser.add_argument('-m', '--min-iter', type=int, default=6, help="Specify minimum number of iterations.")
     parser.add_argument('-e', '--epsilon', type= int, default= -6,
                         help= "Convergence criteria: noise flunctuation at convergence should be less 10**epsilon.")
     parser.add_argument('-t', '--tolerance', type= int, default= 5,
@@ -125,12 +127,12 @@ def main():
     for it in range(args.repeat):
         F= np.random.rand(m, d)
         S= np.random.rand(d, e)
-        G= np.random.rand(e, n)
+        G= np.random.rand(n, e)
         params= {
             'min_iter': args.min_iter,
             'max_iter': args.max_iter,
             'epsilon': args.epsilon,
-            'tolerace': args.tolerance,
+            'tolerance': args.tolerance,
             'verbose': True
         }
 
