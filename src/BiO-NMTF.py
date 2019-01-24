@@ -1,9 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from functools import reduce
+from numba import njit, jit
 import argparse
 import time
 import csv
+
+# @jit
 def check_stop(hist, epsilon= -7, wait= 2):
     EPS= 10**epsilon
     flag= 1
@@ -24,7 +27,7 @@ def dump_log(configStr, err_history):
             writer.writerow([i, h])
 
 
-
+# @jit(parallel= True)
 def multiplicative_update(X, F, S, G, min_iter= 100, max_iter= 1000, epsilon= -6, tolerance= 5, verbose= True):
     err_history= []
     trXX= np.trace(np.dot(X.T, X))
@@ -62,7 +65,7 @@ def multiplicative_update(X, F, S, G, min_iter= 100, max_iter= 1000, epsilon= -6
             break
 
         if verbose:
-            print("loss: %s" %(loss, ))
+            print("loss %+3s: %s" %(i, loss, ))
 
     return (F, S, G), err_history
 
