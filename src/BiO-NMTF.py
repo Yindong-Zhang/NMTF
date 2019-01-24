@@ -5,7 +5,6 @@ import argparse
 import time
 import csv
 def check_stop(hist, epsilon= -7, wait= 2):
-    lastN= hist[-wait:]
     EPS= 10**epsilon
     flag= 1
     for i in range(-wait, 0):
@@ -90,7 +89,7 @@ def load_data():
     pass
 
 def load_test():
-    return 100 * np.random.rand(500, 1000)
+    return 1000 * np.random.rand(500, 1000)
 
 def main():
     parser= argparse.ArgumentParser(description= 'non-negative matrix tri-factorization')
@@ -99,12 +98,12 @@ def main():
     parser.add_argument('-col', '--rank_column', type= int, default= 3,
                         help= "factorization rank(column dimension)")
     parser.add_argument('-i', '--max_iter', type=int, default=20, help="Maximum number of iterations.")
-    parser.add_argument('-m', '--min-iter', type=int, default=6, help="Specify minimum number of iterations.")
-    parser.add_argument('-e', '--epsilon', type= int, default= -6,
+    parser.add_argument('-m', '--min_iter', type=int, default=6, help="Specify minimum number of iterations.")
+    parser.add_argument('-e', '--epsilon', type= int, default= -10,
                         help= "Convergence criteria: noise flunctuation at convergence should be less 10**epsilon.")
     parser.add_argument('-t', '--tolerance', type= int, default= 5,
                         help= "Loss decrease tolerance when judging convergence.")
-    parser.add_argument('-r', '--repeat', type= int, default= 3,
+    parser.add_argument('-r', '--repeat', type= int, default= 6,
                         help= 'Repeat count in regard of initilization dependency.')
     parser.add_argument('-l', '--label', type= str, default= 'test',
                         help= "label of this run case for discriminitive output filename.")
@@ -116,18 +115,20 @@ def main():
     # low rank shape
     # m * n = m * d ^ d * e ^ e * n
     assert len(data.shape)== 2, "Input data is not a 2 dimensional matrix"
+    assert args.tolerance < args.min_iter, "Convergence tolerance should be smaller than min_iter"
     m= data.shape[0]
     n= data.shape[1]
-    d= args.rank_row= 10
-    e= args.rank_column= 8
+    d= args.rank_row
+    e= args.rank_column
     print('Data shape: %s' %(data.shape, ))
     print('Low rank Matrix Shape: (%s, %s)' %(d, e))
     factors_list= []
-    loss_list= []
+    losses_list= []
     for it in range(args.repeat):
-        F= np.random.rand(m, d)
-        S= np.random.rand(d, e)
-        G= np.random.rand(n, e)
+        print("Start the %s-th try..." %(it, ))
+        F= 10 * np.random.rand(m, d)
+        S= 10 * np.random.rand(d, e)
+        G= 10 * np.random.rand(n, e)
         params= {
             'min_iter': args.min_iter,
             'max_iter': args.max_iter,
@@ -141,14 +142,16 @@ def main():
         configDetail= configStr + '-%s' %(it, )
         dump_log(configDetail, losses)
 
-        min_loss= np.min(losses)
         factors_list.append(factors)
-        loss_list.append(min_loss)
+        losses_list.append(losses)
 
-    ind= np.argmin(loss_list)
-    loss= loss_list[ind]
+    min_losses= np.min(losses_list, -1)
+    ind= np.argmin(min_losses)
+    losses= losses_list[ind]
     factors=factors_list[ind]
-    return factors, loss
+    return factors, losses
 
 if __name__ == '__main__':
-    main()
+    factors, losses= main()
+    plt.plot(losses)
+    plt.show()
